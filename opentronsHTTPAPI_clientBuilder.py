@@ -28,9 +28,11 @@ class opentronsClient:
         self.headers = dicHeaders
         self.runID = None
         self.commandURL = None
-        self.labware = {}
+        self.labware = {"fixed-trash": {'id': 'fixed-trash', 'slot': 12}}
         self.pipettes = {}
         self._initalizeRun()
+
+        return
 
     def _initalizeRun(self):
         '''
@@ -58,6 +60,8 @@ class opentronsClient:
             self.commandURL = strRunURL + f"/{self.runID}/commands"
         else:
             raise Exception(f"Failed to create a new run.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
+        
+        return
         
     def loadLabware(self,
                     intSlot: int,
@@ -117,10 +121,45 @@ class opentronsClient:
 
         if jsonResponse.status_code == 201:
             dicResponse = json.loads(jsonResponse.text)
+            print(dicResponse)
             strLabwareID = dicResponse['data']['result']['labwareId']
             self.labware[strLabwareName] = {"id": strLabwareID, "slot": intSlot}
         else:
             raise Exception(f"Failed to load labware.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
+        
+        return
+        
+    # *** WIP ***
+    def loadCustomLabware(self,
+                          jsonLabware: dict,
+                          ):
+        '''
+        loads custom labware onto the robot
+
+        arguments
+        ----------
+        jsonLabware: dict
+            the JSON object of the custom labware to be loaded
+
+        returns
+        ----------
+        None
+        '''
+
+        jsonResponse = requests.post(
+            url = f"http://{self.robotIP}:31950/runs/{self.runID}/labware_definitions",
+            headers = self.headers,
+            data = jsonLabware
+        )
+
+        # now maybe load labware???
+
+        # if jsonResponse.status_code == 201:
+        #     dicResponse = json.loads(jsonResponse.text)
+        #     strLabwareID = dicResponse['data']['labware']['id']
+        #     self.labware[strLabwareName] = {"id": strLabwareID, "slot": intSlot}
+        
+        pass
         
     def loadPipette(self,
                     strPipetteName: str,
@@ -168,6 +207,8 @@ class opentronsClient:
         else:
             raise Exception(f"Failed to load pipette.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
         
+        return
+        
     def homeRobot(self):
         '''
         homes the robot - this should be done before doing any other movements of the robot per instance but need to implement this***
@@ -189,55 +230,141 @@ class opentronsClient:
             data = jsonCommand
         )
 
-def pickUpTip(self,
-              strLabwareName: str,
-              strWellName: str,
-              ):
-    '''
-    picks up a tip from a labware
+        return
 
-    arguments
-    ----------
-    strLabwareName: str
-        the name of the labware from which the tip is to be picked up
+    def pickUpTip(self,
+                  strLabwareName: str,
+                  strPipetteName: str,
+                  strOffsetStart: str = "top",
+                  strOffsetX: int = 0,
+                  strOffsetY: int = 0,
+                  strOffsetZ: int = 0,
+                  strWellName: str = "A1",
+                  strIntent: str = "protocol"
+                  ):
+        '''
+        picks up a tip from a labware
 
-    strWellName: str
-        the name of the well from which the tip is to be picked up
+        arguments
+        ----------
+        strLabwareName: str
+            the name of the labware from which the tip is to be picked up
 
-    returns
-    ----------
-    None
-    '''
+        strWellName: str
+            the name of the well from which the tip is to be picked up
 
-    pass
+        returns
+        ----------
+        None
+        '''
+
+        # *** WIP ***
+        # build in some check to see if the tip is already picked up
+
+
+        dicCommand = {
+            "data": {
+                "commandType": "pickUpTip",
+                "params": {
+                    "labwareId": self.labware[strLabwareName]["id"],
+                    "wellName": strWellName,
+                    "wellLocation": {
+                        "origin": strOffsetStart,
+                        "offset": {"x": strOffsetX, "y": strOffsetY, "z": strOffsetZ}
+                        },
+                    "pipetteId": self.pipettes[strPipetteName]["id"],
+                },
+                "intent": strIntent
+            }
+        }
+
+        jsonCommand = json.dumps(dicCommand)
+
+        jsonResponse = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = jsonCommand
+        )
+
+        # if jsonResponse.status_code == 201:
+        # print some response
+
+        return
         
+    def dropTip(self,
+                strPipetteName: str,
+                strLabwareName: str = "fixed-trash",
+                strWellName: str = "A1",
+                strOffsetStart: str = "top",
+                strOffsetX: int = 0,
+                strOffsetY: int = 0,
+                strOffsetZ: int = 0,
+                boolHomeAfter: bool = False,
+                boolAlternateDropLocation: bool = False,
+                strIntent: str = "protocol",
+                ):
+        '''
+        drops a tip into a labware
 
-# # Pick up tip
-# command_dict = {
-# 	"data": {
-# 		"commandType": "pickUpTip",
-# 		"params": {
-# 			"labwareId": labware_1_id,
-# 			"wellName": "A1",
-# 			"wellLocation": {
-# 				"origin": "top", "offset": {"x": 0, "y": 0, "z": 0}
-# 			},
-# 			"pipetteId": pipette_id
-# 		},
-# 		"intent": "setup"
-# 	}
-# }
+        arguments
+        ----------
+        strLabwareName: str
+            the name of the labware into which the tip is to be dropped
 
-# command_payload = json.dumps(command_dict)
-# print(f"Command:\n{command_payload}\n")
+        strWellName: str
+            the name of the well into which the tip is to be dropped
 
-# r = requests.post(
-# 	url=commands_url,
-# 	headers=HEADERS,
-# 	data=command_payload
-# 	)
+        returns
+        ----------
+        None
+        '''
 
-# print(f"Response:\n{r}\n{r.text}\n")
+        # *** WIP ***
+        # build in some check to see if the tip is already dropped
+
+        # need to check if fixed-trash is a valid labware or not
+
+        dicCommand = {
+            "data": {
+                "commandType": "dropTip",
+                "params": {
+                    "pipetteId": self.pipettes[strPipetteName]["id"],
+                    "labwareId": self.labware[strLabwareName]["id"],
+                    "wellName": strWellName,
+                    "wellLocation": {
+                        "origin": strOffsetStart,
+                        "offset": {"x": strOffsetX, "y": strOffsetY, "z": strOffsetZ}
+                    },
+                    "homeAfter": boolHomeAfter,
+                    "alternateDropLocation": boolAlternateDropLocation
+                },
+                "intent": strIntent
+            }
+        }
+
+        jsonCommand = json.dumps(dicCommand)
+
+        jsonResponse = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = jsonCommand
+        )
+
+        # if jsonResponse.status_code == 201:
+        # print some response
+
+        return
+    
+    def aspirate(self,):
+        pass
+
+    def dispense(self,):
+        pass
+
+    def moveTo(self,):
+        pass
 
 
             
