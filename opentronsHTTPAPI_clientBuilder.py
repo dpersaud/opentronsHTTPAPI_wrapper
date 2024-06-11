@@ -32,8 +32,9 @@ class opentronsClient:
         self.runID = None
         self.commandURL = None
 
-        # need to fix this
+        # *** NEED TO ADD FIXED TRASH TO LABWARE BY DEFAULT ***
         self.labware = {"fixed-trash": {'id': 'fixed-trash', 'slot': 12}}
+
         self.pipettes = {}
         self._initalizeRun()
 
@@ -53,9 +54,10 @@ class opentronsClient:
 
         strRunURL = f"http://{self.robotIP}:31950/runs"
         # create a new run
-        jsonResponse = requests.post(url = strRunURL,
+        strResponse = requests.post(url = strRunURL,
                                      headers = self.headers
                                      )
+        
         if jsonResponse.status_code == 201:
             dicResponse = json.loads(jsonResponse.text)
             # get the run ID
@@ -126,7 +128,7 @@ class opentronsClient:
         LOGGER.debug(f"Command: {strCommand}")
         
 
-        jsonResponse = requests.post(
+        dicResponse = requests.post(
             url = self.commandURL,
             headers = self.headers,
             params = {"waitUntilComplete": True},
@@ -134,10 +136,10 @@ class opentronsClient:
         )
 
         # LOG - debug
-        LOGGER.debug(f"Response: {jsonResponse.text}")
+        LOGGER.debug(f"Response: {dicResponse.text}")
 
-        if jsonResponse.status_code == 201:
-            dicResponse = json.loads(jsonResponse.text)
+        if dicResponse.status_code == 201:
+            dicResponse = json.loads(dicResponse.text)
             print(dicResponse)
             strLabwareID = dicResponse['data']['result']['labwareId']
             self.labware[strLabwareName] = {"id": strLabwareID, "slot": intSlot}
@@ -294,9 +296,9 @@ class opentronsClient:
                   strLabwareName: str,
                   strPipetteName: str,
                   strOffsetStart: str = "top",
-                  strOffsetX: int = 0,
-                  strOffsetY: int = 0,
-                  strOffsetZ: int = 0,
+                  strOffsetX: float = 0,
+                  strOffsetY: float = 0,
+                  strOffsetZ: float = 0,
                   strWellName: str = "A1",
                   strIntent: str = "setup"
                   ):
@@ -366,7 +368,7 @@ class opentronsClient:
                 strPipetteName: str,
                 strLabwareName: str = "fixed-trash",
                 strWellName: str = "A1",
-                strOffsetStart: str = "top",
+                strOffsetStart: str = "center",
                 strOffsetX: int = 0,
                 strOffsetY: int = 0,
                 strOffsetZ: int = 0,
@@ -379,20 +381,49 @@ class opentronsClient:
 
         arguments
         ----------
+        strPipetteName: str
+            the name of the pipette from which the tip is to be dropped
+
         strLabwareName: str
             the name of the labware into which the tip is to be dropped
+            default: "fixed-trash"
 
         strWellName: str
             the name of the well into which the tip is to be dropped
+            default: "A1"
 
-        returns
-        ----------
-        None
+        strOffsetStart: str
+            the starting point of the drop
+            default: "center"
+
+        strOffsetX: int
+            the x offset of the drop
+            default: 0
+
+        strOffsetY: int
+            the y offset of the drop
+            default: 0
+
+        strOffsetZ: int
+            the z offset of the drop
+            default: 0
+
+        boolHomeAfter: bool
+            whether the robot should home after the drop
+            default: False
+
+        boolAlternateDropLocation: bool
+            whether the robot should use an alternate drop location
+            default: False
+
+        strIntent: str
+            the intent of the command
+            default: "setup"
         '''
 
-        # *** WIP ***
-        # build in some check to see if the tip is already dropped
+        # *** BUILD IN CHECK TO SEE IF THERE IS A TIP TO DROP ***
 
+        # make command dictionary
         dicCommand = {
             "data": {
                 "commandType": "dropTip",
@@ -411,39 +442,331 @@ class opentronsClient:
             }
         }
 
-        jsonCommand = json.dumps(dicCommand)
+        # dump to string
+        strCommand = json.dumps(dicCommand)
 
         # LOG - info
         LOGGER.info(f"Dropping tip into labware: {strLabwareName}")
         # LOG - debug
-        LOGGER.debug(f"Command: {dicCommand}")
+        LOGGER.debug(f"Command: {strCommand}")
 
-        print(jsonCommand)
-
-        jsonResponse = requests.post(
+        # make request
+        dicResponse = requests.post(
             url = self.commandURL,
             headers = self.headers,
             params = {"waitUntilComplete": True},
-            data = jsonCommand
+            data = strCommand
         )
 
-        print(jsonResponse.text)
-
         # LOG - debug
-        LOGGER.debug(f"Response: {jsonResponse.text}")
+        LOGGER.debug(f"Response: {dicResponse.text}")
 
-        if jsonResponse.status_code == 201:
+        if dicResponse.status_code == 201:
             # LOG - info
             LOGGER.info(f"Tip dropped into labware: {strLabwareName}, well: {strWellName}")
+        else:
+            raise Exception(f"Failed to drop tip.\nError code: {dicResponse.status_code}\n Error message: {dicResponse.text}")
     
-    def aspirate(self,):
-        pass
+    def aspirate(self,
+                 strLabwareName: str,
+                 strWellName: str,
+                 strPipetteName: str,
+                 intVolume: int,                   # uL
+                 intFlowRate: float = 100,             # uL/s -- need to check this
+                 strOffsetStart: str = "top",
+                 strOffsetX: int = 0,
+                 strOffsetY: int = 0,
+                 strOffsetZ: int = 0,
+                 strIntent: str = "setup"
+                 ):
+        '''
+        aspirates liquid from a well
 
-    def dispense(self,):
-        pass
+        arguments
+        ----------
+        strLabwareName: str
+            the name of the labware from which the liquid is to be aspirated
 
-    def moveTo(self,):
-        pass
+        strWellName: str
+            the name of the well from which the liquid is to be aspirated
+
+        strPipetteName: str
+            the name of the pipette to be used for aspiration
+
+        intVolume: int  
+            the volume of liquid to be aspirated
+            units: uL
+
+        intFlowRate: int
+            the flow rate of the aspiration
+            units: uL/s
+            default: 7
+
+        strOffsetStart: str
+            the starting point of the aspiration
+            default: "top"
+
+        strOffsetX: int
+            the x offset of the aspiration
+            default: 0
+
+        strOffsetY: int
+            the y offset of the aspiration
+            default: 0
+
+        strOffsetZ: int
+            the z offset of the aspiration
+            default: 0
+
+        strIntent: str
+            the intent of the command
+            default: setup
+
+        returns
+        ----------
+        None
+        '''
+
+        # make command dictionary
+        dicCommand = {
+            "data": {
+                "commandType": "aspirate",
+                "params": {
+                    "labwareId": self.labware[strLabwareName]["id"],
+                    "wellName": strWellName,
+                    "wellLocation": {
+                        "origin": strOffsetStart,
+                        "offset": {"x": strOffsetX, "y": strOffsetY, "z": strOffsetZ}
+                    },
+                    "flowrate": intFlowRate,
+                    "volume": intVolume,
+                    "pipetteId": self.pipettes[strPipetteName]["id"]
+                },
+                "intent": strIntent
+            }
+        }
+
+        # dump to string
+        strCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        LOGGER.info(f"Aspirating from labware: {strLabwareName}, well: {strWellName}")
+        # LOG - debug
+        LOGGER.debug(f"Command: {strCommand}")
+
+        # make request
+        dicResponse = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = strCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {dicResponse.text}")
+        
+        if dicResponse.status_code == 201:
+            # LOG - info
+            LOGGER.info(f"Aspiration successful.")
+        else:
+            raise Exception(f"Failed to aspirate.\nError code: {dicResponse.status_code}\n Error message: {dicResponse.text}")
+        
+
+    def dispense(self,
+                 strLabwareName: str,
+                 strWellName: str,
+                 strPipetteName: str,
+                 intVolume: int,                   # uL
+                 intFlowRate: float = 7,             # uL/s -- need to check this
+                 strOffsetStart: str = "top",
+                 strOffsetX: int = 0,
+                 strOffsetY: int = 0,
+                 strOffsetZ: int = 0,
+                 strIntent: str = "setup"
+                 ):
+        '''
+        dispenses liquid into a well
+
+        arguments
+        ----------
+        strLabwareName: str
+            the name of the labware from which the liquid is to be aspirated
+
+        strWellName: str
+            the name of the well from which the liquid is to be aspirated
+
+         strPipetteName: str
+            the name of the pipette to be used for aspiration
+
+        intVolume: int  
+            the volume of liquid to be aspirated
+            units: uL
+
+        intFlowRate: int
+            the flow rate of the aspiration
+            units: uL/s
+            default: 7
+
+        strOffsetStart: str
+            the starting point of the aspiration
+            default: "top"
+
+        strOffsetX: int
+            the x offset of the aspiration
+            default: 0
+
+        strOffsetY: int
+            the y offset of the aspiration
+            default: 0
+
+        strOffsetZ: int
+            the z offset of the aspiration
+            default: 0
+
+        strIntent: str
+            the intent of the command
+            default: setup
+
+        returns
+        ----------
+        None
+        '''
+
+        # make command dictionary
+        dicCommand = {
+            "data": {
+                "commandType": "dispense",
+                "params": {
+                    "labwareId": self.labware[strLabwareName]["id"],
+                    "wellName": strWellName,
+                    "wellLocation": {
+                        "origin": strOffsetStart,
+                        "offset": {"x": strOffsetX, "y": strOffsetY, "z": strOffsetZ}
+                    },
+                    "flowrate": intFlowRate,
+                    "volume": intVolume,
+                    "pipetteId": self.pipettes[strPipetteName]["id"]
+                },
+                "intent": strIntent
+            }
+        }
+
+        # dump to string
+        strCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        LOGGER.info(f"Dispensing into labware: {strLabwareName}, well: {strWellName}")
+        # LOG - debug
+        LOGGER.debug(f"Command: {strCommand}")
+
+        # make request
+        dicResponse = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = strCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {dicResponse.text}")
+
+        if dicResponse.status_code == 201:
+            # LOG - info
+            LOGGER.info(f"Dispense successful.")
+        else:
+            raise Exception(f"Failed to dispense.\nError code: {dicResponse.status_code}\n Error message: {dicResponse.text}")
+
+    def moveToWell(self,
+                   strLabwareName: str,
+                   strWellName: str,
+                   strPipetteName: str,
+                   strOffsetStart: str = "top",
+                   intOffsetX: int = 0,
+                   intOffsetY: int = 0,
+                   intOffsetZ: int = 0,
+                   strIntent: str = "setup"
+                   ):
+        '''
+        moves the pipette to a well
+
+        arguments
+        ----------
+        strLabwareName: str
+            the name of the labware to which the pipette is to be moved
+
+        strWellName: str
+            the name of the well to which the pipette is to be moved
+
+        strPipetteName: str
+            the name of the pipette to be moved
+
+        strOffsetStart: str
+            the starting point of the move
+            default: "top"
+
+        intOffsetX: int
+            the x offset of the move
+            default: 0
+
+        intOffsetY: int
+            the y offset of the move
+            default: 0
+
+        intOffsetZ: int
+            the z offset of the move
+            default: 0
+
+        strIntent: str
+            the intent of the command
+            default: setup  
+
+        returns
+        ----------
+        None
+        '''
+
+        # make command dictionary
+        dicCommand = {
+            "data": {
+                "commandType": "moveToWell",
+                "params": {
+                    "labwareId": self.labware[strLabwareName]["id"],
+                    "wellName": strWellName,
+                    "wellLocation": {
+                        "origin": strOffsetStart,
+                        "offset": {"x": intOffsetX, "y": intOffsetY, "z": intOffsetZ}
+                    },
+                    "pipetteId": self.pipettes[strPipetteName]["id"]
+                },
+                "intent": strIntent
+            }
+        }
+
+        # dump to string
+        strCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        LOGGER.info(f"Moving pipette to labware: {strLabwareName}, well: {strWellName}")
+        # LOG - debug
+        LOGGER.debug(f"Command: {strCommand}")
+
+        # make request
+        dicResponse = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = strCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {dicResponse.text}")
+
+        if dicResponse.status_code == 201:
+            # LOG - info
+            LOGGER.info(f"Move successful.")
+        else:
+            raise Exception(f"Failed to move pipette.\nError code: {dicResponse.status_code}\n Error message: {dicResponse.text}")
+     
 
 
             
@@ -451,12 +774,14 @@ class opentronsClient:
 
     '''
     TODO LIST 
+    -----------
 
-    ADD ADDITIONAL CHECK -  status == FAILED
+    ADD CHECK TO SEE WELL IS VALID FOR ASPIRATION/DISPENSE
+    
+    ADD ADDITIONAL CHECK FOR ALL REQUESTS -  status == FAILED
         it is possible for the robot to return a response (ie. status_code == 201) but the command to fail
 
-    FIGURE OUT FIXED 
-
+    FIGURE OUT FIXED TRAS
 
     '''
     # *** INITIALIZATION ***
@@ -467,13 +792,3 @@ class opentronsClient:
 
     #  (https://github.com/Opentrons/opentrons-integration-tools/blob/main/http-api/examples/atomic_commands_setup.py)
 
-
-    # *** INTERNAL FUNCTIONS ***
-    # function to send request to the robot
-
-    # *** METHODS ***
-    # pickup tip
-    # drop tip
-    # aspiate
-    # dispense
-    # move to
