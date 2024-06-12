@@ -54,12 +54,12 @@ class opentronsClient:
 
         strRunURL = f"http://{self.robotIP}:31950/runs"
         # create a new run
-        strResponse = requests.post(url = strRunURL,
-                                     headers = self.headers
-                                     )
+        response = requests.post(url = strRunURL,
+                                 headers = self.headers
+                                 )
         
-        if jsonResponse.status_code == 201:
-            dicResponse = json.loads(jsonResponse.text)
+        if response.status_code == 201:
+            dicResponse = json.loads(response.text)
             # get the run ID
             self.runID = dicResponse['data']['id']
             # setup command endpoints
@@ -70,7 +70,7 @@ class opentronsClient:
             LOGGER.info(f"Command URL: {self.commandURL}")
 
         else:
-            raise Exception(f"Failed to create a new run.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
+            raise Exception(f"Failed to create a new run.\nError code: {response.status_code}\n Error message: {response.text}")
         
         
     def loadLabware(self,
@@ -128,7 +128,7 @@ class opentronsClient:
         LOGGER.debug(f"Command: {strCommand}")
         
 
-        dicResponse = requests.post(
+        response = requests.post(
             url = self.commandURL,
             headers = self.headers,
             params = {"waitUntilComplete": True},
@@ -136,17 +136,17 @@ class opentronsClient:
         )
 
         # LOG - debug
-        LOGGER.debug(f"Response: {dicResponse.text}")
+        LOGGER.debug(f"Response: {response.text}")
 
-        if dicResponse.status_code == 201:
-            dicResponse = json.loads(dicResponse.text)
-            print(dicResponse)
+        if response.status_code == 201:
+            dicResponse = json.loads(response.text)
             strLabwareID = dicResponse['data']['result']['labwareId']
-            self.labware[strLabwareName] = {"id": strLabwareID, "slot": intSlot}
+            strLabwareIdentifier_temp = strLabwareName + "_" + str(intSlot)
+            self.labware[strLabwareIdentifier_temp] = {"id": strLabwareID, "slot": intSlot}
             # LOG - info
             LOGGER.info(f"Labware loaded with name: {strLabwareName} and ID: {strLabwareID}")
         else:
-            raise Exception(f"Failed to load labware.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
+            raise Exception(f"Failed to load labware.\nError code: {response.status_code}\n Error message: {response.text}")
         
         
     def loadCustomLabware(self,
@@ -160,6 +160,13 @@ class opentronsClient:
         ----------
         dicLabware: dict
             the JSON object of the custom labware to be loaded (directly from opentrons labware definitions)
+
+        intSlot: int
+            the slot number where the labware is to be loaded
+
+        strLabwareID: str
+            the ID of the labware to be loaded - to be used for loading the same labware multiple times
+            default: None
 
         returns
         ----------
@@ -175,18 +182,18 @@ class opentronsClient:
         # LOG - debug
         LOGGER.debug(f"Command: {strCommand}")
 
-        jsonResponse = requests.post(
+        response = requests.post(
             url = f"http://{self.robotIP}:31950/runs/{self.runID}/labware_definitions",
             headers = self.headers,
             data = strCommand
         )
 
         # LOG - debug
-        LOGGER.debug(f"Response: {jsonResponse.text}")
+        LOGGER.debug(f"Response: {response.text}")
         
-        if jsonResponse.status_code == 201:
+        if response.status_code == 201:
             # LOG - info
-            LOGGER.info(f"Custom labware pushed to the robot.")
+            LOGGER.info(f"Custome labware {dicLabware['parameters']['loadName']} loaded in slot: {intSlot} successfully.")
             # load the labware
             self.loadLabware(intSlot = intSlot,
                              strLabwareName = dicLabware['parameters']['loadName'],
@@ -195,7 +202,14 @@ class opentronsClient:
                              strIntent = "setup"
                              )
         else:
-            raise Exception(f"Failed to load custom labware.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
+            raise Exception(f"Failed to load custom labware.\nError code: {response.status_code}\n Error message: {response.text}")
+        
+
+    # *** WIP ***
+    def loadLiquid(self,
+                   strLiquidName: str,):
+        pass
+                   
 
         
 
@@ -229,31 +243,31 @@ class opentronsClient:
             }
         }
 
-        jsonCommand = json.dumps(dicCommand)
+        strCommand = json.dumps(dicCommand)
 
         # LOG - info
         LOGGER.info(f"Loading pipette: {strPipetteName} on mount: {strMount}")
         # LOG - debug
-        LOGGER.debug(f"Command: {jsonCommand}")
+        LOGGER.debug(f"Command: {strCommand}")
 
-        jsonResponse = requests.post(
+        response = requests.post(
             url = self.commandURL,
             headers = self.headers,
             params = {"waitUntilComplete": True},
-            data = jsonCommand
+            data = strCommand
         )
 
         # LOG - debug
-        LOGGER.debug(f"Response: {jsonResponse.text}")
+        LOGGER.debug(f"Response: {response.text}")
 
-        if jsonResponse.status_code == 201:
-            dicResponse = json.loads(jsonResponse.text)
+        if response.status_code == 201:
+            dicResponse = json.loads(response.text)
             strPipetteID = dicResponse['data']['result']['pipetteId']
             self.pipettes[strPipetteName] = {"id": strPipetteID, "mount": strMount}
             # LOG - info
             LOGGER.info(f"Pipette loaded with name: {strPipetteName} and ID: {strPipetteID}")
         else:
-            raise Exception(f"Failed to load pipette.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
+            raise Exception(f"Failed to load pipette.\nError code: {response.status_code}\n Error message: {response.text}")
         
 
         
@@ -270,26 +284,26 @@ class opentronsClient:
         None
         '''
 
-        jsonCommand = json.dumps({"target": "robot"})
+        strCommand = json.dumps({"target": "robot"})
 
         # LOG - info
         LOGGER.info(f"Homing the robot")
         # LOG - debug
-        LOGGER.debug(f"Command: {jsonCommand}")
+        LOGGER.debug(f"Command: {strCommand}")
 
-        jsonResponse = requests.post(
+        response = requests.post(
             url = f"http://{self.robotIP}:31950/robot/home",
             headers = self.headers,
-            data = jsonCommand
+            data = strCommand
         )
 
         # LOG - debug
-        LOGGER.debug(f"Response: {jsonResponse.text}")
-        if jsonResponse.status_code == 200:
+        LOGGER.debug(f"Response: {response.text}")
+        if response.status_code == 200:
             # LOG - info
             LOGGER.info(f"Robot homed successfully.")
         else:
-            raise Exception(f"Failed to home the robot.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
+            raise Exception(f"Failed to home the robot.\nError code: {response.status_code}\n Error message: {response.text}")
         
 
     def pickUpTip(self,
@@ -451,7 +465,7 @@ class opentronsClient:
         LOGGER.debug(f"Command: {strCommand}")
 
         # make request
-        dicResponse = requests.post(
+        response = requests.post(
             url = self.commandURL,
             headers = self.headers,
             params = {"waitUntilComplete": True},
@@ -459,20 +473,20 @@ class opentronsClient:
         )
 
         # LOG - debug
-        LOGGER.debug(f"Response: {dicResponse.text}")
+        LOGGER.debug(f"Response: {response.text}")
 
-        if dicResponse.status_code == 201:
+        if response.status_code == 201:
             # LOG - info
             LOGGER.info(f"Tip dropped into labware: {strLabwareName}, well: {strWellName}")
         else:
-            raise Exception(f"Failed to drop tip.\nError code: {dicResponse.status_code}\n Error message: {dicResponse.text}")
+            raise Exception(f"Failed to drop tip.\nError code: {response.status_code}\n Error message: {response.text}")
     
     def aspirate(self,
                  strLabwareName: str,
                  strWellName: str,
                  strPipetteName: str,
-                 intVolume: int,                   # uL
-                 intFlowRate: float = 100,             # uL/s -- need to check this
+                 intVolume: int,                        # uL
+                 fltFlowRate: float = 818.343,          # uL/s -- need to check this
                  strOffsetStart: str = "top",
                  strOffsetX: int = 0,
                  strOffsetY: int = 0,
@@ -538,8 +552,8 @@ class opentronsClient:
                         "origin": strOffsetStart,
                         "offset": {"x": strOffsetX, "y": strOffsetY, "z": strOffsetZ}
                     },
-                    "flowrate": intFlowRate,
-                    "volume": intVolume,
+                    "flowRate": str(fltFlowRate),
+                    "volume": str(intVolume),
                     "pipetteId": self.pipettes[strPipetteName]["id"]
                 },
                 "intent": strIntent
@@ -555,7 +569,7 @@ class opentronsClient:
         LOGGER.debug(f"Command: {strCommand}")
 
         # make request
-        dicResponse = requests.post(
+        response = requests.post(
             url = self.commandURL,
             headers = self.headers,
             params = {"waitUntilComplete": True},
@@ -563,21 +577,21 @@ class opentronsClient:
         )
 
         # LOG - debug
-        LOGGER.debug(f"Response: {dicResponse.text}")
+        LOGGER.debug(f"Response: {response.text}")
         
-        if dicResponse.status_code == 201:
+        if response.status_code == 201:
             # LOG - info
             LOGGER.info(f"Aspiration successful.")
         else:
-            raise Exception(f"Failed to aspirate.\nError code: {dicResponse.status_code}\n Error message: {dicResponse.text}")
+            raise Exception(f"Failed to aspirate.\nError code: {response.status_code}\n Error message: {response.text}")
         
 
     def dispense(self,
                  strLabwareName: str,
                  strWellName: str,
                  strPipetteName: str,
-                 intVolume: int,                   # uL
-                 intFlowRate: float = 7,             # uL/s -- need to check this
+                 intVolume: int,                        # uL
+                 fltFlowRate: float = 818.343,          # uL/s -- need to check this
                  strOffsetStart: str = "top",
                  strOffsetX: int = 0,
                  strOffsetY: int = 0,
@@ -643,7 +657,7 @@ class opentronsClient:
                         "origin": strOffsetStart,
                         "offset": {"x": strOffsetX, "y": strOffsetY, "z": strOffsetZ}
                     },
-                    "flowrate": intFlowRate,
+                    "flowRate": fltFlowRate,
                     "volume": intVolume,
                     "pipetteId": self.pipettes[strPipetteName]["id"]
                 },
@@ -660,7 +674,7 @@ class opentronsClient:
         LOGGER.debug(f"Command: {strCommand}")
 
         # make request
-        dicResponse = requests.post(
+        response = requests.post(
             url = self.commandURL,
             headers = self.headers,
             params = {"waitUntilComplete": True},
@@ -668,13 +682,13 @@ class opentronsClient:
         )
 
         # LOG - debug
-        LOGGER.debug(f"Response: {dicResponse.text}")
+        LOGGER.debug(f"Response: {response.text}")
 
-        if dicResponse.status_code == 201:
+        if response.status_code == 201:
             # LOG - info
             LOGGER.info(f"Dispense successful.")
         else:
-            raise Exception(f"Failed to dispense.\nError code: {dicResponse.status_code}\n Error message: {dicResponse.text}")
+            raise Exception(f"Failed to dispense.\nError code: {response.status_code}\n Error message: {response.text}")
 
     def moveToWell(self,
                    strLabwareName: str,
@@ -751,7 +765,7 @@ class opentronsClient:
         LOGGER.debug(f"Command: {strCommand}")
 
         # make request
-        dicResponse = requests.post(
+        response = requests.post(
             url = self.commandURL,
             headers = self.headers,
             params = {"waitUntilComplete": True},
@@ -759,13 +773,13 @@ class opentronsClient:
         )
 
         # LOG - debug
-        LOGGER.debug(f"Response: {dicResponse.text}")
+        LOGGER.debug(f"Response: {response.text}")
 
-        if dicResponse.status_code == 201:
+        if response.status_code == 201:
             # LOG - info
             LOGGER.info(f"Move successful.")
         else:
-            raise Exception(f"Failed to move pipette.\nError code: {dicResponse.status_code}\n Error message: {dicResponse.text}")
+            raise Exception(f"Failed to move pipette.\nError code: {response.status_code}\n Error message: {response.text}")
      
 
 
@@ -781,7 +795,11 @@ class opentronsClient:
     ADD ADDITIONAL CHECK FOR ALL REQUESTS -  status == FAILED
         it is possible for the robot to return a response (ie. status_code == 201) but the command to fail
 
-    FIGURE OUT FIXED TRAS
+    FIGURE OUT FIXED TRASH
+
+    LOAD LIQUID
+
+    LABWARE OFFSETS
 
     '''
     # *** INITIALIZATION ***
