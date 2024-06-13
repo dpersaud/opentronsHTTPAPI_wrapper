@@ -780,8 +780,17 @@ class opentronsClient:
             LOGGER.info(f"Move successful.")
         else:
             raise Exception(f"Failed to move pipette.\nError code: {response.status_code}\n Error message: {response.text}")
-     
+        
 
+    def addLabwareOffsets(self,
+                          ):
+        pass
+
+    def turnLightsOn(self):
+        pass
+
+    def turnLightsOff(self):
+        pass
 
             
 
@@ -799,14 +808,5 @@ class opentronsClient:
 
     LOAD LIQUID
 
-    LABWARE OFFSETS
-
     '''
-    # *** INITIALIZATION ***
-
-        # some way to manage IDs (run, labware, pipettes, etc)
-        # some way to track the state of the robot (shorthand)
-        # tracking the state of the experiment will be done by the experiment handler (dependant on the projects)
-
-    #  (https://github.com/Opentrons/opentrons-integration-tools/blob/main/http-api/examples/atomic_commands_setup.py)
 
