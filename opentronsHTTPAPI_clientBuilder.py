@@ -38,7 +38,6 @@ class opentronsClient:
         self.pipettes = {}
         self._initalizeRun()
 
-
     def _initalizeRun(self):
         '''
         creates a new blank run on the opentrons with command endpoints
@@ -54,25 +53,24 @@ class opentronsClient:
 
         strRunURL = f"http://{self.robotIP}:31950/runs"
         # create a new run
-        response = requests.post(url = strRunURL,
-                                 headers = self.headers
+        response = requests.post(url=strRunURL,
+                                 headers=self.headers
                                  )
-        
+
         if response.status_code == 201:
             dicResponse = json.loads(response.text)
             # get the run ID
             self.runID = dicResponse['data']['id']
             # setup command endpoints
             self.commandURL = strRunURL + f"/{self.runID}/commands"
-            
+
             # LOG - info
             LOGGER.info(f"New run created with ID: {self.runID}")
             LOGGER.info(f"Command URL: {self.commandURL}")
 
         else:
             raise Exception(f"Failed to create a new run.\nError code: {response.status_code}\n Error message: {response.text}")
-        
-        
+
     def loadLabware(self,
                     intSlot: int,
                     strLabwareName: str,
@@ -106,7 +104,7 @@ class opentronsClient:
         ----------
         None
         '''
-    
+
         dicCommand = {
             "data": {
                 "commandType": "loadLabware",
@@ -126,7 +124,6 @@ class opentronsClient:
         LOGGER.info(f"Loading labware: {strLabwareName} in slot: {intSlot}")
         # LOG - debug
         LOGGER.debug(f"Command: {strCommand}")
-        
 
         response = requests.post(
             url = self.commandURL,
@@ -147,8 +144,7 @@ class opentronsClient:
             LOGGER.info(f"Labware loaded with name: {strLabwareName} and ID: {strLabwareID}")
         else:
             raise Exception(f"Failed to load labware.\nError code: {response.status_code}\n Error message: {response.text}")
-        
-        
+
     def loadCustomLabware(self,
                           dicLabware: dict,
                           intSlot: int,
@@ -190,7 +186,7 @@ class opentronsClient:
 
         # LOG - debug
         LOGGER.debug(f"Response: {response.text}")
-        
+
         if response.status_code == 201:
             # LOG - info
             LOGGER.info(f"Custome labware {dicLabware['parameters']['loadName']} loaded in slot: {intSlot} successfully.")
@@ -202,16 +198,14 @@ class opentronsClient:
                              strIntent = "setup"
                              )
         else:
-            raise Exception(f"Failed to load custom labware.\nError code: {response.status_code}\n Error message: {response.text}")
-        
+            raise Exception(
+                f"Failed to load custom labware.\nError code: {response.status_code}\n Error message: {response.text}"
+            )
 
     # *** WIP ***
     def loadLiquid(self,
                    strLiquidName: str,):
         pass
-                   
-
-        
 
     def loadPipette(self,
                     strPipetteName: str,
@@ -267,10 +261,10 @@ class opentronsClient:
             # LOG - info
             LOGGER.info(f"Pipette loaded with name: {strPipetteName} and ID: {strPipetteID}")
         else:
-            raise Exception(f"Failed to load pipette.\nError code: {response.status_code}\n Error message: {response.text}")
-        
+            raise Exception(
+                f"Failed to load pipette.\nError code: {response.status_code}\n Error message: {response.text}"
+            )
 
-        
     def homeRobot(self):
         '''
         homes the robot - this should be done before doing any other movements of the robot per instance but need to implement this***
@@ -303,8 +297,9 @@ class opentronsClient:
             # LOG - info
             LOGGER.info(f"Robot homed successfully.")
         else:
-            raise Exception(f"Failed to home the robot.\nError code: {response.status_code}\n Error message: {response.text}")
-        
+            raise Exception(
+                f"Failed to home the robot.\nError code: {response.status_code}\n Error message: {response.text}"
+            )
 
     def pickUpTip(self,
                   strLabwareName: str,
@@ -334,7 +329,6 @@ class opentronsClient:
 
         # *** WIP ***
         # build in some check to see if the tip is already picked up
-
 
         dicCommand = {
             "data": {
@@ -366,7 +360,7 @@ class opentronsClient:
             data = jsonCommand
         )
 
-        # LOG - debug   
+        # LOG - debug
         LOGGER.debug(f"Response: {jsonResponse.text}")
 
         if jsonResponse.status_code == 201:
@@ -376,8 +370,6 @@ class opentronsClient:
         else:
             raise Exception(f"Failed to pick up tip.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
 
-
-        
     def dropTip(self,
                 strPipetteName: str,
                 strLabwareName: str = "fixed-trash",
@@ -480,7 +472,7 @@ class opentronsClient:
             LOGGER.info(f"Tip dropped into labware: {strLabwareName}, well: {strWellName}")
         else:
             raise Exception(f"Failed to drop tip.\nError code: {response.status_code}\n Error message: {response.text}")
-    
+
     def aspirate(self,
                  strLabwareName: str,
                  strWellName: str,
@@ -578,13 +570,14 @@ class opentronsClient:
 
         # LOG - debug
         LOGGER.debug(f"Response: {response.text}")
-        
+
         if response.status_code == 201:
             # LOG - info
             LOGGER.info(f"Aspiration successful.")
         else:
-            raise Exception(f"Failed to aspirate.\nError code: {response.status_code}\n Error message: {response.text}")
-        
+            raise Exception(
+                f"Failed to aspirate.\nError code: {response.status_code}\n Error message: {response.text}"
+            )
 
     def dispense(self,
                  strLabwareName: str,
@@ -686,7 +679,7 @@ class opentronsClient:
 
         if response.status_code == 201:
             # LOG - info
-            LOGGER.info(f"Dispense successful.")
+            LOGGER.info("Dispense successful.")
         else:
             raise Exception(f"Failed to dispense.\nError code: {response.status_code}\n Error message: {response.text}")
 
@@ -748,11 +741,11 @@ class opentronsClient:
                     "wellName": strWellName,
                     "wellLocation": {
                         "origin": strOffsetStart,
-                        "offset": {"x": intOffsetX, "y": intOffsetY, "z": intOffsetZ}
+                        "offset": {"x": intOffsetX, "y": intOffsetY, "z": intOffsetZ},
                     },
-                    "pipetteId": self.pipettes[strPipetteName]["id"]
+                    "pipetteId": self.pipettes[strPipetteName]["id"],
                 },
-                "intent": strIntent
+                "intent": strIntent,
             }
         }
 
@@ -777,10 +770,11 @@ class opentronsClient:
 
         if response.status_code == 201:
             # LOG - info
-            LOGGER.info(f"Move successful.")
+            LOGGER.info("Move successful.")
         else:
-            raise Exception(f"Failed to move pipette.\nError code: {response.status_code}\n Error message: {response.text}")
-        
+            raise Exception(
+                f"Failed to move pipette.\nError code: {response.status_code}\n Error message: {response.text}"
+            )
 
     def addLabwareOffsets(self,
                           ):
@@ -792,15 +786,12 @@ class opentronsClient:
     def turnLightsOff(self):
         pass
 
-            
-
-
-    '''
+    """
     TODO LIST 
     -----------
 
     ADD CHECK TO SEE WELL IS VALID FOR ASPIRATION/DISPENSE
-    
+
     ADD ADDITIONAL CHECK FOR ALL REQUESTS -  status == FAILED
         it is possible for the robot to return a response (ie. status_code == 201) but the command to fail
 
@@ -808,5 +799,4 @@ class opentronsClient:
 
     LOAD LIQUID
 
-    '''
-
+    """
