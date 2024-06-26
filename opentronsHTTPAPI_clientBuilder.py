@@ -33,7 +33,7 @@ class opentronsClient:
         self.commandURL = None
 
         # *** NEED TO ADD FIXED TRASH TO LABWARE BY DEFAULT ***
-        self.labware = {"fixed-trash": {'id': 'fixed-trash', 'slot': 12}}
+        self.labware = {}#{"fixed-trash": {'id': 'fixed-trash', 'slot': 12}}
 
         self.pipettes = {}
         self._initalizeRun()
@@ -241,9 +241,7 @@ class opentronsClient:
                                                          )
             return strLabwareIdentifier_temp
         else:
-            raise Exception(
-                f"Failed to load custom labware.\nError code: {response.status_code}\n Error message: {response.text}"
-            )
+            raise Exception(f"Failed to load custom labware.\nError code: {response.status_code}\n Error message: {response.text}")
 
     # *** WIP ***
     def loadLiquid(self,
@@ -348,9 +346,9 @@ class opentronsClient:
                   strLabwareName: str,
                   strPipetteName: str,
                   strOffsetStart: str = "top",
-                  strOffsetX: float = 0,
-                  strOffsetY: float = 0,
-                  strOffsetZ: float = 0,
+                  fltOffsetX: float = 0,
+                  fltOffsetY: float = 0,
+                  fltOffsetZ: float = 0,
                   strWellName: str = "A1",
                   strIntent: str = "setup"
                   ):
@@ -362,8 +360,32 @@ class opentronsClient:
         strLabwareName: str
             the name of the labware from which the tip is to be picked up
 
+        strPipetteName: str
+            the name of the pipette to be used for picking up the tip
+
+        strOffsetStart: str
+            the starting point of the pick up
+            default: "top"
+
+        fltOffsetX: float
+            the x offset of the pick up
+            default: 0
+
+        fltOffsetY: float
+            the y offset of the pick up
+            default: 0
+
+        fltOffsetZ: float
+            the z offset of the pick up
+            default: 0 
+
         strWellName: str
             the name of the well from which the tip is to be picked up
+            default: "A1"
+
+        strIntent: str
+            the intent of the command
+            default: "setup"
 
         returns
         ----------
@@ -381,7 +403,9 @@ class opentronsClient:
                     "wellName": strWellName,
                     "wellLocation": {
                         "origin": strOffsetStart,
-                        "offset": {"x": strOffsetX, "y": strOffsetY, "z": strOffsetZ}
+                        "offset": {"x": fltOffsetX,
+                                   "y": fltOffsetY,
+                                   "z": fltOffsetZ}
                         },
                     "pipetteId": self.pipettes[strPipetteName]["id"],
                 },
@@ -418,9 +442,9 @@ class opentronsClient:
                 strLabwareName: str,
                 strWellName: str = "A1",
                 strOffsetStart: str = "center",
-                strOffsetX: int = 0,
-                strOffsetY: int = 0,
-                strOffsetZ: int = 0,
+                fltOffsetX: float = 0,
+                fltOffsetY: float = 0,
+                fltOffsetZ: float = 0,
                 boolHomeAfter: bool = False,
                 boolAlternateDropLocation: bool = False,
                 strIntent: str = "setup",
@@ -445,15 +469,15 @@ class opentronsClient:
             the starting point of the drop
             default: "center"
 
-        strOffsetX: int
+        fltOffsetX: float
             the x offset of the drop
             default: 0
 
-        strOffsetY: int
+        fltOffsetY: float
             the y offset of the drop
             default: 0
 
-        strOffsetZ: int
+        fltOffsetZ: float
             the z offset of the drop
             default: 0
 
@@ -482,7 +506,9 @@ class opentronsClient:
                     "wellName": strWellName,
                     "wellLocation": {
                         "origin": strOffsetStart,
-                        "offset": {"x": strOffsetX, "y": strOffsetY, "z": strOffsetZ}
+                        "offset": {"x": fltOffsetX,
+                                   "y": fltOffsetY,
+                                   "z": fltOffsetZ}
                     },
                     "homeAfter": boolHomeAfter,
                     "alternateDropLocation": boolAlternateDropLocation
@@ -523,9 +549,9 @@ class opentronsClient:
                  intVolume: int,                        # uL
                  fltFlowRate: float = 274.7,            # uL/s -- need to check this
                  strOffsetStart: str = "center",
-                 strOffsetX: int = 0,
-                 strOffsetY: int = 0,
-                 strOffsetZ: int = 0,
+                 fltOffsetX: float = 0,
+                 fltOffsetY: float = 0,
+                 fltOffsetZ: float = 0,
                  strIntent: str = "setup"
                  ):
         '''
@@ -555,15 +581,15 @@ class opentronsClient:
             the starting point of the aspiration
             default: "top"
 
-        strOffsetX: int
+        fltOffsetX: float
             the x offset of the aspiration
             default: 0
 
-        strOffsetY: int
+        fltOffsetY: float
             the y offset of the aspiration
             default: 0
 
-        strOffsetZ: int
+        fltOffsetZ: float
             the z offset of the aspiration
             default: 0
 
@@ -585,7 +611,9 @@ class opentronsClient:
                     "wellName": strWellName,
                     "wellLocation": {
                         "origin": strOffsetStart,
-                        "offset": {"x": strOffsetX, "y": strOffsetY, "z": strOffsetZ}
+                        "offset": {"x": fltOffsetX,
+                                   "y": fltOffsetY,
+                                   "z": fltOffsetZ}
                     },
                     "flowRate": str(fltFlowRate),
                     "volume": str(intVolume),
@@ -629,9 +657,9 @@ class opentronsClient:
                  intVolume: int,                        # uL
                  fltFlowRate: float = 274.7,            # uL/s -- need to check this
                  strOffsetStart: str = "top",
-                 strOffsetX: int = 0,
-                 strOffsetY: int = 0,
-                 strOffsetZ: int = 0,
+                 fltOffsetX: float = 0,
+                 fltOffsetY: float = 0,
+                 fltOffsetZ: float = 0,
                  strIntent: str = "setup"
                  ):
         '''
@@ -661,15 +689,15 @@ class opentronsClient:
             the starting point of the aspiration
             default: "top"
 
-        strOffsetX: int
+        fltOffsetX: float
             the x offset of the aspiration
             default: 0
 
-        strOffsetY: int
+        fltOffsetY: float
             the y offset of the aspiration
             default: 0
 
-        strOffsetZ: int
+        fltOffsetZ: float
             the z offset of the aspiration
             default: 0
 
@@ -691,7 +719,9 @@ class opentronsClient:
                     "wellName": strWellName,
                     "wellLocation": {
                         "origin": strOffsetStart,
-                        "offset": {"x": strOffsetX, "y": strOffsetY, "z": strOffsetZ}
+                        "offset": {"x": fltOffsetX,
+                                   "y": fltOffsetY,
+                                   "z": fltOffsetZ}
                     },
                     "flowRate": fltFlowRate,
                     "volume": intVolume,
@@ -731,9 +761,9 @@ class opentronsClient:
                    strWellName: str,
                    strPipetteName: str,
                    strOffsetStart: str = "top",
-                   intOffsetX: int = 0,
-                   intOffsetY: int = 0,
-                   intOffsetZ: int = 0,
+                   fltOffsetX: float = 0,
+                   fltOffsetY: float = 0,
+                   fltOffsetZ: float = 0,
                    strIntent: str = "setup",
                    intSpeed: int = 400   # mm/s
                    ):
@@ -755,15 +785,15 @@ class opentronsClient:
             the starting point of the move
             default: "top"
 
-        intOffsetX: int
+        fltOffsetX: float
             the x offset of the move
             default: 0
 
-        intOffsetY: int
+        fltOffsetY: float
             the y offset of the move
             default: 0
 
-        intOffsetZ: int
+        fltOffsetZ: float
             the z offset of the move
             default: 0
 
@@ -786,7 +816,9 @@ class opentronsClient:
                     "wellName": strWellName,
                     "wellLocation": {
                         "origin": strOffsetStart,
-                        "offset": {"x": intOffsetX, "y": intOffsetY, "z": intOffsetZ},
+                        "offset": {"x": fltOffsetX,
+                                   "y": fltOffsetY,
+                                   "z": fltOffsetZ},
                     },
                     "pipetteId": self.pipettes[strPipetteName]["id"],
                 },
@@ -912,7 +944,8 @@ class opentronsClient:
             raise Exception(f"Failed to add offsets to labware.\nError code: {response.status_code}\n Error message: {response.text}")
 
     def lights(self,
-               strState: str = 'true',):
+               strState: str = 'true'
+               )-> None:
         '''
         turns the lights on or off
 
@@ -920,24 +953,39 @@ class opentronsClient:
         ----------
         strState: string
             whether the lights should be turned on or off
-            default: true   
+            default: true (on)
 
         returns
         ----------
         None
         '''
 
+        # make strState a string if it is not already
+        if type(strState) != str:
+            strState = str(strState)
+
+        # make strState lowercase
+        strState = strState.lower()
+
+        # check if the state is valid
+        if strState not in ['true', 'false']:
+            raise Exception(f"Invalid state: {strState}, needs to be 'true' or 'false'")
+
+        # make command dictionary
         dicCommand = {
             "on": strState
         }
 
+        # dump to string
         strCommand = json.dumps(dicCommand)
 
+
         # LOG - info
-        LOGGER.info(f"Turning lights {strState}")
+        LOGGER.info(f"Lights On: {strState}")
         # LOG - debug
         LOGGER.debug(f"Command: {strCommand}")
 
+        # make request
         response = requests.post(
             url = f"http://{self.robotIP}:31950/robot/lights",
             headers = self.headers,
@@ -949,10 +997,36 @@ class opentronsClient:
 
         if response.status_code == 200:
             # LOG - info
-            LOGGER.info(f"Lights turned {strState}")
+            LOGGER.info(f"Light change successful.")
+        else:
+            # LOG - error
+            LOGGER.error(f"Failed to turn lights {strState}.")
+            # raise exception
+            raise Exception(f"Failed to turn lights {strState}.\nError code: {response.status_code}\n Error message: {response.text}")
 
     def controlAction(self,
-                 strAction: str):
+                      strAction: str):
+        '''
+        performs a control action
+
+        arguments
+        ----------
+        strAction: str
+            the action to be performed
+            options: "pause", "play", "stop"
+
+        returns
+        ----------
+        None
+        '''
+        # make strAction lowercase
+        strAction = strAction.lower()
+
+        # check if the action is valid
+        if strAction not in ["pause", "play", "stop"]:
+            raise Exception(f"Invalid action: {strAction}, needs to be 'pause', 'play', or 'stop'")
+
+        # make command dictionary
         dicCommand = {
             "data": {
                 "actionType": strAction,
