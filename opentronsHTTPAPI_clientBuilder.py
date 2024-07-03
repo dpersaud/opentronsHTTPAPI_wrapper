@@ -97,14 +97,14 @@ class opentronsClient:
         LOGGER.debug(f"Response: {response.text}")
 
         if response.status_code == 200:
-            dicRunInfo = json.loads(response.text)
+            jsonRunInfo = json.loads(response.text)
             # LOG - info
             LOGGER.info(f"Run information retrieved.")
 
         else:
             raise Exception(f"Failed to get run information.\nError code: {response.status_code}\n Error message: {response.text}")
         
-        return dicRunInfo
+        return jsonRunInfo
         
         
     def loadLabware(self,
@@ -174,13 +174,20 @@ class opentronsClient:
         LOGGER.debug(f"Response: {response.text}")
 
         if response.status_code == 201:
+            # convert response to dictionary
             dicResponse = json.loads(response.text)
-            strLabwareID = dicResponse['data']['result']['labwareId']
-            #strLabwareURi = dicResponse['data']['result']['labwareUri']
-            strLabwareIdentifier_temp = strLabwareName + "_" + str(intSlot)
-            self.labware[strLabwareIdentifier_temp] = {"id": strLabwareID, "slot": intSlot}
-            # LOG - info
-            LOGGER.info(f"Labware loaded with name: {strLabwareName} and ID: {strLabwareID}")
+            if dicResponse['status'] == "failed":
+                # log the error
+                LOGGER.error(f"Failed to load labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+                # raise exception
+                raise Exception(f"Failed to load labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            else:
+                strLabwareID = dicResponse['data']['result']['labwareId']
+                #strLabwareURi = dicResponse['data']['result']['labwareUri']
+                strLabwareIdentifier_temp = strLabwareName + "_" + str(intSlot)
+                self.labware[strLabwareIdentifier_temp] = {"id": strLabwareID, "slot": intSlot}
+                # LOG - info
+                LOGGER.info(f"Labware loaded with name: {strLabwareName} and ID: {strLabwareID}")
         else:
             raise Exception(f"Failed to load labware.\nError code: {response.status_code}\n Error message: {response.text}")
         
@@ -230,23 +237,27 @@ class opentronsClient:
         LOGGER.debug(f"Response: {response.text}")
 
         if response.status_code == 201:
-            # LOG - info
-            LOGGER.info(f"Custome labware {dicLabware['parameters']['loadName']} loaded in slot: {intSlot} successfully.")
-            # load the labware
-            strLabwareIdentifier_temp = self.loadLabware(intSlot = intSlot,
-                                                         strLabwareName = dicLabware['parameters']['loadName'],
-                                                         strNamespace = dicLabware['namespace'],
-                                                         intVersion = dicLabware['version'],
-                                                         strIntent = "setup"
-                                                         )
-            return strLabwareIdentifier_temp
+            # convert response to dictionary
+            dicResponse = json.loads(response.text)
+            # if the response failed
+            if dicResponse.status == "failed":
+                # log the error
+                LOGGER.error(f"Failed to load custom labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+                # raise exception
+                raise Exception(f"Failed to load custom labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            else:
+                # LOG - info
+                LOGGER.info(f"Custome labware {dicLabware['parameters']['loadName']} loaded in slot: {intSlot} successfully.")
+                # load the labware
+                strLabwareIdentifier_temp = self.loadLabware(intSlot = intSlot,
+                                                            strLabwareName = dicLabware['parameters']['loadName'],
+                                                            strNamespace = dicLabware['namespace'],
+                                                            intVersion = dicLabware['version'],
+                                                            strIntent = "setup"
+                                                            )
+                return strLabwareIdentifier_temp
         else:
             raise Exception(f"Failed to load custom labware.\nError code: {response.status_code}\n Error message: {response.text}")
-
-    # *** WIP ***
-    def loadLiquid(self,
-                   strLiquidName: str,):
-        pass
 
     def loadPipette(self,
                     strPipetteName: str,
@@ -296,11 +307,19 @@ class opentronsClient:
         LOGGER.debug(f"Response: {response.text}")
 
         if response.status_code == 201:
+            # convert response to dictionary
             dicResponse = json.loads(response.text)
-            strPipetteID = dicResponse['data']['result']['pipetteId']
-            self.pipettes[strPipetteName] = {"id": strPipetteID, "mount": strMount}
-            # LOG - info
-            LOGGER.info(f"Pipette loaded with name: {strPipetteName} and ID: {strPipetteID}")
+            # if the response failed
+            if dicResponse.status == "failed":
+                # log the error
+                LOGGER.error(f"Failed to load pipette.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+                # raise exception
+                raise Exception(f"Failed to load pipette.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            else:
+                strPipetteID = dicResponse['data']['result']['pipetteId']
+                self.pipettes[strPipetteName] = {"id": strPipetteID, "mount": strMount}
+                # LOG - info
+                LOGGER.info(f"Pipette loaded with name: {strPipetteName} and ID: {strPipetteID}")
         else:
             raise Exception(
                 f"Failed to load pipette.\nError code: {response.status_code}\n Error message: {response.text}"
@@ -431,9 +450,16 @@ class opentronsClient:
         LOGGER.debug(f"Response: {jsonResponse.text}")
 
         if jsonResponse.status_code == 201:
-            # LOG - info
-            LOGGER.info(f"Tip picked up from labware: {strLabwareName}, well: {strWellName}")
-
+            # convert response to dictionary
+            dicResponse = json.loads(jsonResponse.text)
+            if dicResponse.status == "failed":
+                # log the error
+                LOGGER.error(f"Failed to pick up tip.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+                # raise exception
+                raise Exception(f"Failed to pick up tip.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            else:
+                # LOG - info
+                LOGGER.info(f"Tip picked up from labware: {strLabwareName}, well: {strWellName}")
         else:
             raise Exception(f"Failed to pick up tip.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
 
@@ -537,8 +563,16 @@ class opentronsClient:
         LOGGER.debug(f"Response: {response.text}")
 
         if response.status_code == 201:
-            # LOG - info
-            LOGGER.info(f"Tip dropped into labware: {strLabwareName}, well: {strWellName}")
+            # convert response to dictionary
+            dicResponse = json.loads(response.text)
+            if dicResponse.status == "failed":
+                # log the error
+                LOGGER.error(f"Failed to drop tip.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+                # raise exception
+                raise Exception(f"Failed to drop tip.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            else:
+                # LOG - info
+                LOGGER.info(f"Tip dropped into labware: {strLabwareName}, well: {strWellName}")
         else:
             raise Exception(f"Failed to drop tip.\nError code: {response.status_code}\n Error message: {response.text}")
 
@@ -643,8 +677,16 @@ class opentronsClient:
         LOGGER.debug(f"Response: {response.text}")
 
         if response.status_code == 201:
-            # LOG - info
-            LOGGER.info(f"Aspiration successful.")
+            # convert response to dictionary
+            dicResponse = json.loads(response.text)
+            if dicResponse.status == "failed":
+                # log the error
+                LOGGER.error(f"Failed to aspirate.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+                # raise exception
+                raise Exception(f"Failed to aspirate.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            else:
+                # LOG - info
+                LOGGER.info(f"Aspiration successful.")
         else:
             raise Exception(
                 f"Failed to aspirate.\nError code: {response.status_code}\n Error message: {response.text}"
@@ -751,10 +793,122 @@ class opentronsClient:
         LOGGER.debug(f"Response: {response.text}")
 
         if response.status_code == 201:
-            # LOG - info
-            LOGGER.info("Dispense successful.")
+            # convert response to dictionary
+            dicResponse = json.loads(response.text)
+            if dicResponse.status == "failed":
+                # log the error
+                LOGGER.error(f"Failed to dispense.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+                # raise exception
+                raise Exception(f"Failed to dispense.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            else:
+                # LOG - info
+                LOGGER.info("Dispense successful.")
         else:
             raise Exception(f"Failed to dispense.\nError code: {response.status_code}\n Error message: {response.text}")
+        
+    def blowout(self,
+                strLabwareName: str,
+                strWellName: str,
+                strPipetteName: str,
+                fltFlowRate: float = 274.7,            # uL/s -- need to check this
+                strOffsetStart: str = "top",
+                fltOffsetX: float = 0,
+                fltOffsetY: float = 0,
+                fltOffsetZ: float = 0
+                ) -> None:
+        '''
+        blows out liquid from a pipette
+
+        arguments
+        ----------
+        strLabwareName: str
+            the name of the labware from which the liquid is to be aspirated
+
+        strWellName: str
+            the name of the well from which the liquid is to be aspirated
+
+        strPipetteName: str
+            the name of the pipette to be used for aspiration
+
+        fltFlowRate: float
+            the flow rate of the aspiration
+            units: uL/s
+            default: 274.7
+
+        strOffsetStart: str
+            the starting point of the aspiration
+            default: "top"
+
+        fltOffsetX: float
+            the x offset of the aspiration
+            default: 0
+
+        fltOffsetY: float
+            the y offset of the aspiration
+            default: 0
+
+        fltOffsetZ: float
+            the z offset of the aspiration
+            default: 0
+
+        returns
+        ----------
+        None
+        '''
+
+        # make command dictionary
+        dicCommand = {
+            "data": {
+                "commandType": "blowout",
+                "params": {
+                    "labwareId": self.labware[strLabwareName]["id"],
+                    "wellName": strWellName,
+                    "wellLocation": {
+                        "origin": strOffsetStart,
+                        "offset": {"x": fltOffsetX,
+                                   "y": fltOffsetY,
+                                   "z": fltOffsetZ}
+                    },
+                    "flowRate": fltFlowRate,
+                    "pipetteId": self.pipettes[strPipetteName]["id"]
+                },
+                "intent": "setup"
+            }
+        }
+
+        # dump to string
+        strCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        LOGGER.info(f"Blowing out from labware: {strLabwareName}, well: {strWellName}")
+        # LOG - debug
+        LOGGER.debug(f"Command: {strCommand}")
+
+        # make request
+        response = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = strCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {response.text}")
+
+        if response.status_code == 201:
+            # convert response to dictionary
+            dicResponse = json.loads(response.text)
+            # if the response failed
+            if dicResponse.status == "failed":
+                # log the error
+                LOGGER.error(f"Failed to blowout.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+                # raise exception
+                raise Exception(f"Failed to blowout.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            else:
+                # LOG - info
+                LOGGER.info("Blowout successful.")
+        else:
+            raise Exception(f"Failed to blowout.\nError code: {response.status_code}\n Error message: {response.text}")
 
     def moveToWell(self,
                    strLabwareName: str,
@@ -846,8 +1000,17 @@ class opentronsClient:
         LOGGER.debug(f"Response: {response.text}")
 
         if response.status_code == 201:
-            # LOG - info
-            LOGGER.info("Move successful.")
+            # convert response to dictionary
+            dicResponse = json.loads(response.text)
+            # if the response failed
+            if dicResponse.status == "failed":
+                # log the error
+                LOGGER.error(f"Failed to move pipette.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+                # raise exception
+                raise Exception(f"Failed to move pipette.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            else:
+                # LOG - info
+                LOGGER.info("Move successful.")
         else:
             raise Exception(
                 f"Failed to move pipette.\nError code: {response.status_code}\n Error message: {response.text}"
@@ -938,8 +1101,17 @@ class opentronsClient:
         LOGGER.debug(f"Response: {response.text}")
 
         if response.status_code == 201:
-            # LOG - info
-            LOGGER.info(f"Offsets added to labware: {strLabwareName}")
+            # convert response to dictionary
+            dicResponse = json.loads(response.text)
+            # if the response failed
+            if dicResponse.status == "failed":
+                # log the error
+                LOGGER.error(f"Failed to add offsets to labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+                # raise exception
+                raise Exception(f"Failed to add offsets to labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            else:
+                # LOG - info
+                LOGGER.info(f"Offsets added to labware: {strLabwareName}")
         else:
             raise Exception(f"Failed to add offsets to labware.\nError code: {response.status_code}\n Error message: {response.text}")
 
