@@ -176,7 +176,7 @@ class opentronsClient:
         if response.status_code == 201:
             # convert response to dictionary
             dicResponse = json.loads(response.text)
-            if dicResponse['status'] == "failed":
+            if dicResponse['data']['status'] == "failed":
                 # log the error
                 LOGGER.error(f"Failed to load labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
@@ -240,7 +240,7 @@ class opentronsClient:
             # convert response to dictionary
             dicResponse = json.loads(response.text)
             # if the response failed
-            if dicResponse.status == "failed":
+            if dicResponse['data']['status'] == "failed":
                 # log the error
                 LOGGER.error(f"Failed to load custom labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
@@ -310,7 +310,7 @@ class opentronsClient:
             # convert response to dictionary
             dicResponse = json.loads(response.text)
             # if the response failed
-            if dicResponse.status == "failed":
+            if dicResponse['data']['status'] == "failed":
                 # log the error
                 LOGGER.error(f"Failed to load pipette.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
@@ -452,7 +452,7 @@ class opentronsClient:
         if jsonResponse.status_code == 201:
             # convert response to dictionary
             dicResponse = json.loads(jsonResponse.text)
-            if dicResponse.status == "failed":
+            if dicResponse['data']['status'] == "failed":
                 # log the error
                 LOGGER.error(f"Failed to pick up tip.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
@@ -565,7 +565,7 @@ class opentronsClient:
         if response.status_code == 201:
             # convert response to dictionary
             dicResponse = json.loads(response.text)
-            if dicResponse.status == "failed":
+            if dicResponse['data']['status'] == "failed":
                 # log the error
                 LOGGER.error(f"Failed to drop tip.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
@@ -679,7 +679,7 @@ class opentronsClient:
         if response.status_code == 201:
             # convert response to dictionary
             dicResponse = json.loads(response.text)
-            if dicResponse.status == "failed":
+            if dicResponse['data']['status'] == "failed":
                 # log the error
                 LOGGER.error(f"Failed to aspirate.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
@@ -795,7 +795,7 @@ class opentronsClient:
         if response.status_code == 201:
             # convert response to dictionary
             dicResponse = json.loads(response.text)
-            if dicResponse.status == "failed":
+            if dicResponse['data']['status'] == "failed":
                 # log the error
                 LOGGER.error(f"Failed to dispense.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
@@ -899,7 +899,7 @@ class opentronsClient:
             # convert response to dictionary
             dicResponse = json.loads(response.text)
             # if the response failed
-            if dicResponse.status == "failed":
+            if dicResponse['data']['status'] == "failed":
                 # log the error
                 LOGGER.error(f"Failed to blowout.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
@@ -1003,7 +1003,7 @@ class opentronsClient:
             # convert response to dictionary
             dicResponse = json.loads(response.text)
             # if the response failed
-            if dicResponse.status == "failed":
+            if dicResponse['data']['status'] == "failed":
                 # log the error
                 LOGGER.error(f"Failed to move pipette.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
@@ -1104,7 +1104,7 @@ class opentronsClient:
             # convert response to dictionary
             dicResponse = json.loads(response.text)
             # if the response failed
-            if dicResponse.status == "failed":
+            if dicResponse['data']['status'] == "failed":
                 # log the error
                 LOGGER.error(f"Failed to add offsets to labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
