@@ -1234,9 +1234,5 @@ class opentronsClient:
 
     ADD CHECK TO SEE WELL IS VALID FOR ASPIRATION/DISPENSE
 
-    ADD ADDITIONAL CHECK FOR ALL REQUESTS -  status == FAILED
-        it is possible for the robot to return a response (ie. status_code == 201) but the command to fail
-
     FIGURE OUT FIXED TRASH
-
     '''
