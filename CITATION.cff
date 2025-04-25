@@ -1,0 +1,21 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: opentronsHTTPAPI_wrapper
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Daniel
+    family-names: Persaud
+    email: da.persaud@mail.utoronto.ca
+    affiliation: University of Toronto
+    orcid: 'https://orcid.org/0009-0004-9980-2704'
+repository-code: 'https://github.com/dpersaud/opentronsHTTPAPI_wrapper'
+abstract: >-
+  Python wrapper to make it easy to send commands to the
+  opentron OT2. It will probably also work for the opentron
+  FLEX. 
+license: CC0-1.0
