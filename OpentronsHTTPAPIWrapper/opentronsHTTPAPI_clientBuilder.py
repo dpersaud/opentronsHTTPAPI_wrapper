@@ -1,6 +1,9 @@
 import requests
 import json
 import logging
+from typing import Literal, Union
+
+# from prefect import task
 
 LOGGER = logging.getLogger(__name__)
 
@@ -11,7 +14,8 @@ class opentronsClient:
 
     def __init__(self,
                  strRobotIP: str,
-                 dicHeaders: dict = {"opentrons-version": "3"},):
+                 dicHeaders: dict = {"opentrons-version": "*"},
+                 strRobot: Literal["flex","ot2"] = "ot2"):
         '''
         initializes the object with the robot IP and headers
 
@@ -27,6 +31,7 @@ class opentronsClient:
         ----------
         None
         '''
+        self.robotType = strRobot
         self.robotIP = strRobotIP
         self.headers = dicHeaders
         self.runID = None
@@ -36,9 +41,10 @@ class opentronsClient:
         self.labware = {}#{"fixed-trash": {'id': 'fixed-trash', 'slot': 12}}
 
         self.pipettes = {}
-        self._initalizeRun()
+        self.__initalizeRun()
 
-    def _initalizeRun(self):
+    # @task
+    def __initalizeRun(self):
         '''
         creates a new blank run on the opentrons with command endpoints
         
@@ -108,8 +114,9 @@ class opentronsClient:
         
         
     def loadLabware(self,
-                    intSlot: int,
+                    strSlot: Union[str, int],
                     strLabwareName: str,
+                    strLabwareLocation:str=None,
                     strNamespace: str = "opentrons",
                     intVersion: int = 1,
                     strIntent: str = "setup"):
@@ -143,11 +150,14 @@ class opentronsClient:
 
         '''
 
+        loc = {"slotName": str(strSlot)}
+        if strLabwareLocation != None: 
+            loc = {"labwareId":str(self.labware[strLabwareLocation]['id'])}
         dicCommand = {
             "data": {
                 "commandType": "loadLabware",
                 "params": {
-                    "location": {"slotName": str(intSlot)},
+                    "location": loc,
                     "loadName": strLabwareName,
                     "namespace": strNamespace,
                     "version": str(intVersion)
@@ -159,7 +169,7 @@ class opentronsClient:
         strCommand = json.dumps(dicCommand)
 
         # LOG - info
-        LOGGER.info(f"Loading labware: {strLabwareName} in slot: {intSlot}")
+        LOGGER.info(f"Loading labware: {strLabwareName} in slot: {strSlot}")
         # LOG - debug
         LOGGER.debug(f"Command: {strCommand}")
 
@@ -184,8 +194,8 @@ class opentronsClient:
             else:
                 strLabwareID = dicResponse['data']['result']['labwareId']
                 #strLabwareURi = dicResponse['data']['result']['labwareUri']
-                strLabwareIdentifier_temp = strLabwareName + "_" + str(intSlot)
-                self.labware[strLabwareIdentifier_temp] = {"id": strLabwareID, "slot": intSlot}
+                strLabwareIdentifier_temp = strLabwareName + "_" + str(strSlot)
+                self.labware[strLabwareIdentifier_temp] = {"id": strLabwareID, "slot": strSlot}
                 # LOG - info
                 LOGGER.info(f"Labware loaded with name: {strLabwareName} and ID: {strLabwareID}")
         else:
@@ -193,10 +203,19 @@ class opentronsClient:
         
         return strLabwareIdentifier_temp
         
-        
+    def loadCustomLabwareFromFile(self, strSlot, strFilePath, strLabware=None):
+        with open(strFilePath, 'r', encoding='utf-8') as f:
+            labware = self.loadCustomLabware(
+                dicLabware = json.load(f),
+                strSlot = strSlot,
+                strLabware=strLabware
+            )
+            return labware
+    
     def loadCustomLabware(self,
                           dicLabware: dict,
-                          intSlot: int,
+                          strSlot: Union[str,int],
+                          strLabware:str=None
                           ):
         '''
         loads custom labware onto the robot
@@ -223,7 +242,7 @@ class opentronsClient:
         strCommand = json.dumps(dicCommand)
 
         # LOG - info
-        LOGGER.info(f"Loading custom labware: {dicLabware['parameters']['loadName']} in slot: {intSlot}")
+        LOGGER.info(f"Loading custom labware: {dicLabware['parameters']['loadName']} in slot: {strSlot}")
         # LOG - debug
         LOGGER.debug(f"Command: {strCommand}")
 
@@ -240,20 +259,22 @@ class opentronsClient:
             # convert response to dictionary
             dicResponse = json.loads(response.text)
             # if the response failed
-            if dicResponse['data']['status'] == "failed":
-                # log the error
-                LOGGER.error(f"Failed to load custom labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
-                # raise exception
-                raise Exception(f"Failed to load custom labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            # if dicResponse['data']['status'] == "failed":
+            #     # log the error
+            #     LOGGER.error(f"Failed to load custom labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            #     # raise exception
+            #     raise Exception(f"Failed to load custom labware.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
+            if False: pass
             else:
                 # LOG - info
-                LOGGER.info(f"Custome labware {dicLabware['parameters']['loadName']} loaded in slot: {intSlot} successfully.")
+                LOGGER.info(f"Custome labware {dicLabware['parameters']['loadName']} loaded in slot: {strSlot} successfully.")
                 # load the labware
-                strLabwareIdentifier_temp = self.loadLabware(intSlot = intSlot,
+                strLabwareIdentifier_temp = self.loadLabware(strSlot = strSlot,
                                                             strLabwareName = dicLabware['parameters']['loadName'],
                                                             strNamespace = dicLabware['namespace'],
                                                             intVersion = dicLabware['version'],
-                                                            strIntent = "setup"
+                                                            strIntent = "setup",
+                                                            strLabwareLocation=strLabware
                                                             )
                 return strLabwareIdentifier_temp
         else:
@@ -454,6 +475,70 @@ class opentronsClient:
             dicResponse = json.loads(jsonResponse.text)
             if dicResponse['data']['status'] == "failed":
                 # log the error
+                LOGGER.error(f"Failed to pick up tip.\nResponse error code: {dicResponse['data']['error']['errorCode']}\n Error type: {dicResponse['data']['error']['errorType']}\n Error message: {dicResponse['data']['error']['detail']}")
+                # raise exception
+                raise Exception(f"Failed to pick up tip.\nResponse error code: {dicResponse['data']['error']['errorCode']}\n Error type: {dicResponse['data']['error']['errorType']}\n Error message: {dicResponse['data']['error']['detail']}")
+            else:
+                # LOG - info
+                LOGGER.info(f"Tip picked up from labware: {strLabwareName}, well: {strWellName}")
+        else:
+            raise Exception(f"Failed to pick up tip.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
+        
+    def liquidProbe(self,
+            strLabwareName: str,
+            strPipetteName: str,
+            strOffsetStart: str = "top",
+            fltOffsetX: float = 0,
+            fltOffsetY: float = 0,
+            fltOffsetZ: float = 0,
+            strWellName: str = "A1",
+            strIntent: str = "setup"
+            ):
+
+
+        # *** WIP ***
+        # build in some check to see if the tip is already picked up
+
+        dicCommand = {
+            "data": {
+                "commandType": "liquidProbe",
+                "params": {
+                    "labwareId": self.labware[strLabwareName]["id"],
+                    "wellName": strWellName,
+                    "wellLocation": {
+                        "origin": strOffsetStart,
+                        "offset": {"x": fltOffsetX,
+                                   "y": fltOffsetY,
+                                   "z": fltOffsetZ}
+                        },
+                    "pipetteId": self.pipettes[strPipetteName]["id"],
+                },
+                "intent": strIntent
+            }
+        }
+
+        jsonCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        LOGGER.info(f"Picking up tip from labware: {strLabwareName}")
+        # LOG - debug
+        LOGGER.debug(f"Command: {jsonCommand}")
+
+        jsonResponse = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = jsonCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {jsonResponse.text}")
+
+        if jsonResponse.status_code == 201:
+            # convert response to dictionary
+            dicResponse = json.loads(jsonResponse.text)
+            if dicResponse['data']['status'] == "failed":
+                # log the error
                 LOGGER.error(f"Failed to pick up tip.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
                 # raise exception
                 raise Exception(f"Failed to pick up tip.\nResponse error code: {dicResponse.error.errorCode}\n Error type: {dicResponse.error.errorType}\n Error message: {dicResponse.error.detail}")
@@ -463,9 +548,150 @@ class opentronsClient:
         else:
             raise Exception(f"Failed to pick up tip.\nError code: {jsonResponse.status_code}\n Error message: {jsonResponse.text}")
 
+    def __moveTipToDisposal(self,
+                   strPipetteName: str,
+                   intSpeed: int = 100, # mm/s
+                   strIntent: str = "setup"
+                   ):
+        
+        # make command dictionary
+        dicCommand = {
+            "data": {
+                "commandType": "moveToAddressableAreaForDropTip",
+                "params": {
+                    # "minimumZHeight": 50,
+                    # "forceDirect": False,
+                    "speed": intSpeed,
+                    "pipetteId": self.pipettes[strPipetteName]["id"],
+                    "addressableAreaName":'movableTrashA3' if self.robotType == "flex" else 'fixedTrash' # ID of disposal chute
+                },
+                "intent": strIntent
+            }
+        }
+
+        # dump to string
+        strCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        LOGGER.info(f"Disposing of held tip: {strPipetteName}")
+        # LOG - debug
+        LOGGER.debug(f"Command: {strCommand}")
+
+        # make request
+        response = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = strCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {response.text}")
+
+        if response.status_code == 201:
+            # LOG - info
+            LOGGER.info(f"Tip dropped into disposal: {strPipetteName}")
+        else:
+            raise Exception(f"Failed to drop tip.\nError code: {response.status_code}\n Error message: {response.text}")
+
+    def moveToLabware(self,
+                strLabwareName:str,
+                strPipetteName: str,
+                intMinimumZHeight:int=60,
+                boolStayAtHighestZ:bool=False,
+                intSpeed: int = 100, # mm/s
+                strIntent: str = "setup"):
+        
+        labwareLocation = self.labware[strLabwareName]["slot"]
+
+        # make command dictionary
+        dicCommand = {
+            "data": {
+                "commandType": "moveToAddressableArea",
+                "params": {
+                    "minimumZHeight": intMinimumZHeight,
+                    "forceDirect": False, # Opentrons does not care for any labware on deck, keep set to false
+                    "speed": intSpeed,
+                    "pipetteId": self.pipettes[strPipetteName]["id"],
+                    "addressableAreaName":labwareLocation,
+                    "stayAtHighestPossibleZ":boolStayAtHighestZ
+                },
+                "intent": strIntent
+            }
+        }
+
+        # dump to string
+        strCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        LOGGER.info(f"Disposing of held tip: {strPipetteName}")
+        # LOG - debug
+        LOGGER.debug(f"Command: {strCommand}")
+
+        # make request
+        response = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = strCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {response.text}")
+
+        if response.status_code == 201:
+            # LOG - info
+            LOGGER.info(f"Tip dropped into disposal: {strPipetteName}")
+        else:
+            raise Exception(f"Failed to drop tip.\nError code: {response.status_code}\n Error message: {response.text}")
+
+
+    def __dropTipInPlace(self, 
+                         strPipetteName: str,
+                         strIntent: str = "setup",
+                         boolHomeAfter:bool = False):
+        # make command dictionary
+        dicCommand = {
+            "data": {
+                "commandType": "dropTipInPlace",
+                "params": {
+                    "pipetteId": self.pipettes[strPipetteName]["id"],
+                    "homeAfter": boolHomeAfter
+                    },
+                "intent": strIntent
+            }
+        }
+
+        # dump to string
+        strCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        LOGGER.info(f"Dropping tip in place: {strPipetteName}")
+        # LOG - debug
+        LOGGER.debug(f"Command: {strCommand}")
+
+        # make request
+        response = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = strCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {response.text}")
+
+        if response.status_code == 201:
+            # LOG - info
+            LOGGER.info(f"Tip dropped at current location")
+        else:
+            raise Exception(f"Failed to drop tip in place.\nError code: {response.status_code}\n Error message: {response.text}")
+
+
     def dropTip(self,
                 strPipetteName: str,
-                strLabwareName: str,
+                boolDropInDisposal:bool = True,
+                strLabwareName: str = None,
                 strWellName: str = "A1",
                 strOffsetStart: str = "center",
                 fltOffsetX: float = 0,
@@ -473,10 +699,11 @@ class opentronsClient:
                 fltOffsetZ: float = 0,
                 boolHomeAfter: bool = False,
                 boolAlternateDropLocation: bool = False,
+                intSpeed:int = 200, # mm/s
                 strIntent: str = "setup",
                 ):
         '''
-        drops a tip into a labware
+        drops a tip into the robot's disposal or a labware well
 
         arguments
         ----------
@@ -486,6 +713,10 @@ class opentronsClient:
         strLabwareName: str
             the name of the labware into which the tip is to be dropped
             default: "fixed-trash"
+
+        boolDropInPlace: bool
+            when true will drop the pipette into the specified well
+            default: True
 
         strWellName: str
             the name of the well into which the tip is to be dropped
@@ -522,6 +753,13 @@ class opentronsClient:
 
         # *** BUILD IN CHECK TO SEE IF THERE IS A TIP TO DROP ***
 
+        # If tip is to be dropped into trash
+        if boolDropInDisposal:
+            self.__moveTipToDisposal(strPipetteName=strPipetteName, intSpeed=intSpeed, strIntent=strIntent)
+            self.__dropTipInPlace(strPipetteName=strPipetteName, strIntent=strIntent, boolHomeAfter=boolHomeAfter)
+            return
+
+        # Drop the tip in a labware well
         # make command dictionary
         dicCommand = {
             "data": {
@@ -1016,6 +1254,160 @@ class opentronsClient:
                 f"Failed to move pipette.\nError code: {response.status_code}\n Error message: {response.text}"
             )
 
+
+    def moveLabware(self, strMovingLabware:str=None, strDestinationLabware:str=None, strIntent:str="setup"):
+        # make command dictionary
+        dicCommand = {
+            "data": {
+                "commandType": "moveLabware",
+                "params": {
+                    "labwareId": self.labware[strMovingLabware]['id'],
+                    "newLocation": {
+                        "labwareId":self.labware[strDestinationLabware]['id']
+                    },
+                    "strategy":"usingGripper",
+                    "dropOffset":{
+                        "x":0,
+                        "y":0,
+                        "z":-8,
+                    }
+                },
+                "intent": strIntent
+            }
+        }
+
+        # dump to string
+        strCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        #! LOGGER.info(f"Openning the gripper")
+        # LOG - debug
+        #! LOGGER.debug(f"Command: {strCommand}")
+
+        # make request
+        response = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = strCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {response.text}")
+
+        if response.status_code == 201:
+            # LOG - info
+            LOGGER.info(f"Moved labware successfully.")
+        else:
+            raise Exception(
+                f"Failed to mve labware.\nError code: {response.status_code}\n Error message: {response.text}"
+            )
+
+    def pipetteHasTip(self, strPipetteName, strIntent: str = "setup"):
+        # make command dictionary
+        dicCommand = {
+            "data": {
+                "commandType": "verifyTipPresence",
+                "params": {
+                    "pipetteId": self.pipettes[strPipetteName]['id'],
+                    "expectedState": "absent"},
+                "intent": strIntent
+            }
+        }
+
+        # dump to string
+        strCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        LOGGER.info(f"Checking for tip on pipette {strPipetteName}")
+        # LOG - debug
+        LOGGER.debug(f"Command: {strCommand}")
+
+        # make request
+        response = requests.post(
+            url = self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = strCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {response.text}")
+
+        if response.status_code == 201:
+            # Check if request succeeded
+            if (data:=json.loads(response.text)['data'])["status"] == "succeeded":
+                LOGGER.info(f"No tip is present on {strPipetteName}.")
+                return False
+            elif data['error']['errorType'] == 'TipAttachedError':
+                LOGGER.info(f"A tip is present on {strPipetteName}.")
+                return True
+        else:
+            raise Exception(
+                f"Failed to check for tip.\nError code: {response.status_code}\n Error message: {response.text}"
+            )
+
+    def closeGripper(self,
+                 fltGripForce: float = None,
+                 strIntent: str = "setup"):
+
+        # make command dictionary
+        dicCommand = {
+            "data": {
+                "commandType": "robot/closeGripperJaw",
+                "params": {},
+                "intent": strIntent
+            }
+        }
+
+        # add force parameter if passed, if none robot will use built-in default force
+        if fltGripForce != None:
+            dicCommand['data']['params'].update({'force':fltGripForce})
+
+        # dump to string
+        strCommand = json.dumps(dicCommand)
+
+        # LOG - info
+        LOGGER.info(f"Closing the gripper{f" with {fltGripForce}N of force" if fltGripForce else ""}")
+        # LOG - debug
+        LOGGER.debug(f"Command: {strCommand}")
+
+        # # make request
+        # payload = {
+        #     "data": {
+        #         "commandType": "calibration/calibrateGripper",
+        #         "params": {
+        #         }
+        #     }
+        # }
+
+        # HEADERS = {
+        #     "Content-Type": "application/json",
+        #     "opentrons-version": "*"
+        # }
+
+        # url = self.commandURL
+        
+        # response = requests.post(url, headers=HEADERS, data=json.dumps(payload))
+
+        response = requests.post(
+            url = self.commandURL,#self.commandURL,
+            headers = self.headers,
+            params = {"waitUntilComplete": True},
+            data = strCommand
+        )
+
+        # LOG - debug
+        LOGGER.debug(f"Response: {response.text}")
+
+        if response.status_code == 201:
+            # LOG - info
+            LOGGER.info(f"Closed grip successfully.")
+        else:
+            raise Exception(
+                f"Failed to close gripper.\nError code: {response.status_code}\n Error message: {response.text}"
+            )
+
     def addLabwareOffsets(self,
                           strLabwareName : str,
                           fltXOffset: float,
@@ -1226,13 +1618,3 @@ class opentronsClient:
         else:
             raise Exception(f"Failed to perform action.\nError code: {response.status_code}\n Error message: {response.text}")
         
-
-            
-    '''
-    TODO LIST 
-    -----------
-
-    ADD CHECK TO SEE WELL IS VALID FOR ASPIRATION/DISPENSE
-
-    FIGURE OUT FIXED TRASH
-    '''
